@@ -5,7 +5,7 @@
   "display": "standalone",
   "background_color": "#07101c",
   "theme_color": "#0a111d",
-  "description": "Football match and stoppage timer for referee assessment.",
+  "description": "Configurable football match and stoppage timer for referee assessment.",
   "icons": [
     {
       "src": "icon-192.png",

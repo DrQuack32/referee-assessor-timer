@@ -4,149 +4,78 @@ A simple web-based match and stoppage timer designed specifically for football r
 
 > **Status: Beta / Field Testing**
 
-The aim is deliberately simple: provide an easy-to-read match clock and a separate accumulated stoppage timer without the additional match-management functions found in referee apps.
-
 ## Launch the Timer
 
 ### [Open Referee Assessor Timer](https://drquack32.github.io/referee-assessor-timer/)
 
 No App Store installation, account or login is required.
 
+## Current Version
+
+**v0.4 Beta**
+
 ## Features
 
 - Large continuous match clock
-- First half runs from `00:00` through `45:00` and beyond
-- Second half starts at `45:00` and runs through `90:00` and beyond
-- Separate stoppage/delay timer
-- Stoppage time can be started and stopped multiple times during each half
-- Stoppages automatically accumulate into a total estimated lost time
-- Manual adjustment of stoppage time by:
-  - ±10 seconds
-  - ±1 minute
-- Stoppage timer automatically resets for the second half
-- Protection against accidental match-clock resets
-- Designed for use on a phone during a match
-- Can be installed on an iPhone Home Screen as a web app
-- Offline support after initial installation/loading
+- Configurable half length for youth and other competitions
+- Optional extra time with configurable extra-time period length
+- Continuous match-minute display across periods
+- Selectable starting period and starting match time
+- Separate accumulated stoppage/delay timer
+- Manual stoppage adjustment by ±10 seconds and ±1 minute
+- Protected end-of-period controls
+- Protected match suspension control
+- Full match suspension stops all clocks
+- Resume continues from the exact suspended match time
+- Stoppage timer resets at the start of each new period
+- iPhone Home Screen / PWA support
+- Offline support after initial loading
 
-## How the Match Clock Works
+## Match Setup
 
-At first-half kick-off, press **Start 1st Half**.
+Before starting, configure the half length, optional extra time, extra-time period length, starting period and starting match time.
 
-The match clock starts at:
+Examples:
 
-`00:00`
+- 45-minute halves: `00:00 → 45:00 → 90:00`
+- 40-minute halves: `00:00 → 40:00 → 80:00`
+- Standard extra time: `90:00 → 105:00 → 120:00`
 
-It continues beyond 45 minutes rather than stopping or resetting.
+## Starting From a Specific Match Time
 
-For example, if the referee ends the first half after two minutes and 37 seconds of additional time, the clock will show:
+The timer can begin from any entered `MM:SS` value. This is useful if an abandoned or suspended match is resumed later, an assessor joins a match already in progress, or a particular period needs to be tested.
 
-`47:37`
-
-Press **End 1st Half** when the half finishes.
-
-At second-half kick-off, press **Start 2nd Half**.
-
-The clock automatically starts again from:
-
-`45:00`
-
-It then continues through `90:00` and into any additional time.
+Select the correct starting period and enter the required match time, for example `63:17`.
 
 ## Stoppage / Delay Timer
 
-The second clock is used to estimate time lost during the match.
+Press **START DELAY** when a significant stoppage begins. The main match clock continues running normally while the stoppage timer accumulates. Press **STOP DELAY** when play resumes.
 
-When a significant stoppage begins, press:
+The total can be adjusted by `−1 min`, `−10 sec`, `+10 sec` and `+1 min`.
 
-**START DELAY**
+The stoppage timer resets whenever a new period begins.
 
-The main match clock continues running normally while the stoppage timer accumulates.
+## Suspend Match
 
-When play resumes, press:
+**Suspend Match** is different from the stoppage timer. Use the stoppage timer when play has stopped but normal match time continues. Use **Suspend Match** when the match itself has been temporarily suspended and all timing should stop.
 
-**STOP DELAY**
-
-The recorded delay is retained.
-
-For another stoppage, press **START DELAY** again. The new delay is added to the existing total.
-
-For example, at the 45-minute mark you might have:
-
-| | Time |
-|---|---:|
-| Match Time | `45:00` |
-| Stoppage / Delay Time | `03:24` |
-
-This gives the assessor an independent estimate of the amount of time lost during the half when considering the referee's management of additional time.
-
-The accumulated stoppage time can also be adjusted manually using the **±10 second** and **±1 minute** controls.
-
-When the second half starts, the stoppage timer automatically resets to `00:00`.
+Suspension requires confirmation with a second tap. While suspended, both clocks stop. **RESUME MATCH** continues from the exact stored match time.
 
 ## Installing on an iPhone
 
-The timer does not need to be downloaded from the App Store.
-
-1. Open [Referee Assessor Timer](https://drquack32.github.io/referee-assessor-timer/) in **Safari** on your iPhone.
+1. Open [Referee Assessor Timer](https://drquack32.github.io/referee-assessor-timer/) in **Safari**.
 2. Tap the **Share** button.
 3. Select **Add to Home Screen**.
 4. Tap **Add**.
-5. Open **Assessor Timer** from the new Home Screen icon.
-
-This allows the timer to run in a standalone, app-like window rather than as a normal Safari tab.
-
-## Typical Match Workflow
-
-### First Half
-
-1. Press **Start 1st Half** at kick-off.
-2. Use **START DELAY** and **STOP DELAY** for significant stoppages.
-3. Press **End 1st Half** when the referee ends the half.
-
-### Second Half
-
-1. Press **Start 2nd Half** at kick-off.
-2. The match clock starts from `45:00`.
-3. The stoppage timer resets to `00:00`.
-4. Record stoppages as required.
-5. Press **End Match** at full-time.
-
-## Reset Protection
-
-The manual **Reset to 00:00** and **Reset to 45:00** controls require confirmation with a second tap.
-
-This reduces the risk of accidentally resetting the timer during a match.
+5. Launch **Assessor Timer** from the Home Screen icon.
 
 ## Purpose
 
-This is intended as a **referee assessment/observation aid**, not as an official match timer.
-
-It deliberately does not record:
-
-- Goals
-- Cards
-- Substitutions
-- Match incidents
-- Player information
-- Referee fitness/GPS data
-
-The objective is to keep the interface simple enough that operating it does not distract the assessor from watching the referee and the match.
+This is intended as a **referee assessment/observation aid**, not as an official match timer. It deliberately avoids goals, cards, substitutions, teams and incident logging so the interface remains quick to operate.
 
 ## Feedback
 
-The timer is currently being field tested.
-
-Feedback from referee assessors and observers is welcome, particularly around:
-
-- Ease of use during a live match
-- Readability outdoors
-- Stoppage timer operation
-- Additional-time assessment
-- iPhone behaviour
-- Features that would make the timer simpler or more useful
-
-Issues and suggestions can be submitted through this GitHub repository.
+The timer is currently being field tested. Feedback and issue reports are welcome through this GitHub repository.
 
 ## Disclaimer
 
