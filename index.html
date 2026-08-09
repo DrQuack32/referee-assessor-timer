@@ -20,7 +20,7 @@
     .app { width:min(820px,100%); margin:0 auto; padding:calc(14px + env(safe-area-inset-top)) 14px calc(22px + env(safe-area-inset-bottom)); }
     .topline { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; color:var(--muted); font-size:.9rem; }
     .status { padding:5px 9px; border:1px solid var(--border); border-radius:999px; background:var(--panel); white-space:nowrap; }
-    .panel,.match-card,.delay-card { border:1px solid var(--border); border-radius:22px; background:var(--panel); padding:16px; }
+    .panel,.match-card,.delay-card,.markers-card { border:1px solid var(--border); border-radius:22px; background:var(--panel); padding:16px; }
     .setup-title { margin:0 0 4px; font-size:1.35rem; }
     .setup-intro { margin:0 0 16px; color:var(--muted); line-height:1.4; }
     .setup-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
@@ -45,7 +45,8 @@
     .suspend-button.resume { border-color:var(--warning); background:#251e10; color:var(--warning); }
     .suspended-banner { display:none; margin:10px 0 0; padding:10px 12px; text-align:center; border-radius:14px; border:1px solid var(--warning); background:#251e10; color:var(--warning); font-weight:850; letter-spacing:.04em; }
     .suspended-banner.show { display:block; }
-    .delay-card { margin-top:12px; transition:border-color .15s ease,background .15s ease; }
+    .delay-card,.markers-card { margin-top:12px; }
+    .delay-card { transition:border-color .15s ease,background .15s ease; }
     .delay-card.live { border-color:var(--danger); background:#24151a; }
     .delay-state { text-align:center; min-height:1.2em; margin-top:6px; color:var(--muted); font-size:.9rem; font-weight:700; }
     .delay-card.live .delay-state { color:var(--danger); }
@@ -54,27 +55,39 @@
     .delay-toggle.active { border-color:var(--danger); background:var(--danger); color:#180505; }
     .delay-toggle:disabled { opacity:.42; }
     .adjust { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px; }
-    .secondary,.reset-button { min-height:48px; border:1px solid var(--border); border-radius:14px; background:var(--panel2); color:var(--text); font-weight:750; padding:10px 8px; }
+    .secondary,.reset-button,.marker-secondary { min-height:48px; border:1px solid var(--border); border-radius:14px; background:var(--panel2); color:var(--text); font-weight:750; padding:10px 8px; }
     .reset-row { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:12px; }
-    .reset-button.armed { border-color:var(--danger); color:var(--danger); }
+    .reset-button.armed,.marker-secondary.armed { border-color:var(--danger); color:var(--danger); }
+    .marker-top{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin-top:10px;}
+    .mark-button{min-height:68px;border:2px solid var(--accent);border-radius:16px;background:transparent;color:var(--text);font-size:1.15rem;font-weight:900;padding:12px;}
+    .mark-button:disabled{opacity:.42;}
+    .marker-count{min-width:66px;text-align:center;color:var(--muted);font-weight:800;}
+    .marker-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+    .marker-list{display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:8px;max-height:230px;overflow-y:auto;}
+    .marker-list.show{display:block;}
+    .marker-item{display:flex;justify-content:space-between;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;}
+    .marker-item:last-child{border-bottom:0;}
+    .marker-period{color:var(--muted);font-size:.85rem;}
+    .toast{min-height:1.2em;margin-top:8px;text-align:center;color:var(--muted);font-size:.82rem;}
     .hint,.version { margin:10px 6px 0; text-align:center; color:var(--muted); font-size:.82rem; line-height:1.35; }
     .version { margin-top:6px; font-size:.72rem; opacity:.75; }
-    @media (max-width:560px) { .setup-grid{grid-template-columns:1fr;} .field.full{grid-column:auto;} .adjust{grid-template-columns:repeat(2,1fr);} .match-time{font-size:clamp(5rem,29vw,8.5rem);} }
+    @media (max-width:560px) { .setup-grid{grid-template-columns:1fr;} .field.full{grid-column:auto;} .adjust{grid-template-columns:repeat(2,1fr);} .marker-controls{grid-template-columns:1fr;} .match-time{font-size:clamp(5rem,29vw,8.5rem);} }
   </style>
 </head>
 <body>
 <main class="app">
-  <div class="topline"><span>Football Match Timer</span><span id="wakeStatus" class="status">Screen awake: —</span></div>
+  <div class="topline"><span id="appName">Football Match Timer</span><span id="wakeStatus" class="status">Screen awake: —</span></div>
 
   <section id="setupScreen" class="panel">
-    <h1 class="setup-title">Match Setup</h1>
-    <p class="setup-intro">Configure the match before starting. Defaults are for a standard 90-minute match.</p>
+    <h1 id="setupTitle" class="setup-title">Match Setup</h1>
+    <p id="setupIntro" class="setup-intro">Configure the match before starting.</p>
     <div class="setup-grid">
-      <div class="field"><label for="halfLength">Half length (minutes)</label><input id="halfLength" type="number" inputmode="numeric" min="1" max="90" value="45"></div>
-      <div class="field"><label>Extra time</label><div class="check-row"><input id="extraTimeEnabled" type="checkbox"><label for="extraTimeEnabled">Enable extra time periods</label></div></div>
-      <div class="field"><label for="etLength">Extra-time half length (minutes)</label><input id="etLength" type="number" inputmode="numeric" min="1" max="45" value="15" disabled></div>
-      <div class="field"><label for="startPeriod">Starting period</label><select id="startPeriod"><option value="1H">1st Half</option><option value="2H">2nd Half</option></select></div>
-      <div class="field full"><label for="startingTime">Starting match time (MM:SS)</label><input id="startingTime" type="text" inputmode="numeric" value="00:00" placeholder="00:00"></div>
+      <div class="field"><label id="languageLabel" for="language">Language</label><select id="language"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="de">Deutsch</option><option value="it">Italiano</option></select></div>
+      <div class="field"><label id="halfLengthLabel" for="halfLength">Half length (minutes)</label><input id="halfLength" type="number" inputmode="numeric" min="1" max="90" value="45"></div>
+      <div class="field"><label id="extraTimeLabel">Extra time</label><div class="check-row"><input id="extraTimeEnabled" type="checkbox"><label id="extraTimeEnableLabel" for="extraTimeEnabled">Enable extra time periods</label></div></div>
+      <div class="field"><label id="etLengthLabel" for="etLength">Extra-time half length (minutes)</label><input id="etLength" type="number" inputmode="numeric" min="1" max="45" value="15" disabled></div>
+      <div class="field"><label id="startPeriodLabel" for="startPeriod">Starting period</label><select id="startPeriod"></select></div>
+      <div class="field full"><label id="startingTimeLabel" for="startingTime">Starting match time (MM:SS)</label><input id="startingTime" type="text" inputmode="numeric" value="00:00" placeholder="00:00"></div>
     </div>
     <div id="setupSummary" class="setup-summary"></div>
     <button id="beginMatch" class="primary" type="button">Use these settings</button>
@@ -103,103 +116,20 @@
       </div>
     </section>
 
+    <section class="markers-card" aria-labelledby="markersLabel">
+      <div id="markersLabel" class="label">Review markers</div>
+      <div class="marker-top"><button id="markButton" class="mark-button" type="button" disabled>MARK</button><div id="markerCount" class="marker-count">0</div></div>
+      <div class="marker-controls"><button id="toggleMarkers" class="marker-secondary" type="button">Show markers</button><button id="undoMarker" class="marker-secondary" type="button">Undo last</button><button id="copyMarkers" class="marker-secondary" type="button">Copy markers</button></div>
+      <div id="markerList" class="marker-list"></div>
+      <button id="clearMarkers" class="marker-secondary" type="button" style="width:100%;margin-top:8px;">Clear markers</button>
+      <div id="markerToast" class="toast"></div>
+    </section>
+
     <div class="reset-row"><button id="newSetup" class="reset-button" type="button">New match setup</button><button id="resetPeriod" class="reset-button" type="button">Reset current period</button></div>
-    <p class="hint">End-period, suspend and reset controls require confirmation. Stoppage time resets at the start of each new period.</p>
-    <p class="version">v0.4 Beta</p>
+    <p id="hintText" class="hint">Protected controls require confirmation with a second tap within 3 seconds.</p>
+    <p class="version">v0.5 Beta</p>
   </section>
 </main>
-<script>
-(() => {
-  const setupScreen=document.getElementById('setupScreen'), timerScreen=document.getElementById('timerScreen');
-  const halfLengthInput=document.getElementById('halfLength'), extraTimeEnabled=document.getElementById('extraTimeEnabled'), etLengthInput=document.getElementById('etLength'), startPeriodSelect=document.getElementById('startPeriod'), startingTimeInput=document.getElementById('startingTime'), setupSummary=document.getElementById('setupSummary'), beginMatch=document.getElementById('beginMatch');
-  const matchEl=document.getElementById('matchTime'), delayEl=document.getElementById('delayTime'), periodEl=document.getElementById('periodText'), mainAction=document.getElementById('mainAction'), suspendButton=document.getElementById('suspendButton'), suspendedBanner=document.getElementById('suspendedBanner');
-  const delayToggle=document.getElementById('delayToggle'), delayCard=document.getElementById('delayCard'), delayState=document.getElementById('delayState');
-  const minus60=document.getElementById('minus60'), minus10=document.getElementById('minus10'), plus10=document.getElementById('plus10'), plus60=document.getElementById('plus60');
-  const newSetup=document.getElementById('newSetup'), resetPeriod=document.getElementById('resetPeriod'), wakeStatus=document.getElementById('wakeStatus');
-
-  let settings={halfMinutes:45,extraTime:false,etMinutes:15,startPeriod:'1H',startTimeMs:0};
-  let period='1H', status='ready', matchBaseMs=0, matchStartedAt=null, delayAccumulatedMs=0, delayStartedAt=null, wakeLock=null, armedAction=null, armedAt=0;
-  const now=()=>performance.now();
-
-  function parseTime(value){ const m=/^\s*(\d{1,3}):([0-5]\d)\s*$/.exec(value); return m ? (Number(m[1])*60+Number(m[2]))*1000 : null; }
-  function formatMs(ms){ const s=Math.max(0,Math.floor(ms/1000)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
-  const halfMs=()=>settings.halfMinutes*60000, etHalfMs=()=>settings.etMinutes*60000;
-  function periodStartMs(p){ if(p==='1H')return 0; if(p==='2H')return halfMs(); if(p==='ET1')return halfMs()*2; if(p==='ET2')return halfMs()*2+etHalfMs(); return 0; }
-  function periodName(p){ return p==='1H'?'First half':p==='2H'?'Second half':p==='ET1'?'Extra time — first period':p==='ET2'?'Extra time — second period':'Match'; }
-  function nextPeriod(p){ if(p==='1H')return '2H'; if(p==='2H'&&settings.extraTime)return 'ET1'; if(p==='ET1')return 'ET2'; return null; }
-
-  function rebuildStartPeriodOptions(){
-    const current=startPeriodSelect.value;
-    startPeriodSelect.innerHTML='<option value="1H">1st Half</option><option value="2H">2nd Half</option>';
-    if(extraTimeEnabled.checked) startPeriodSelect.insertAdjacentHTML('beforeend','<option value="ET1">Extra Time — 1st Period</option><option value="ET2">Extra Time — 2nd Period</option>');
-    if([...startPeriodSelect.options].some(o=>o.value===current)) startPeriodSelect.value=current;
-  }
-  function updateSetupSummary(){
-    const h=Math.max(1,Number(halfLengthInput.value)||45), et=Math.max(1,Number(etLengthInput.value)||15), full=h*2;
-    setupSummary.innerHTML='<strong>Normal time:</strong> 00:00 → '+h+':00 → '+full+':00.'+(extraTimeEnabled.checked?' Extra time: '+full+':00 → '+(full+et)+':00 → '+(full+et*2)+':00.':'');
-  }
-  extraTimeEnabled.addEventListener('change',()=>{ etLengthInput.disabled=!extraTimeEnabled.checked; rebuildStartPeriodOptions(); updateSetupSummary(); });
-  halfLengthInput.addEventListener('input',updateSetupSummary); etLengthInput.addEventListener('input',updateSetupSummary);
-  startPeriodSelect.addEventListener('change',()=>{ const h=Math.max(1,Number(halfLengthInput.value)||45), et=Math.max(1,Number(etLengthInput.value)||15); let m=0; if(startPeriodSelect.value==='2H')m=h; if(startPeriodSelect.value==='ET1')m=h*2; if(startPeriodSelect.value==='ET2')m=h*2+et; startingTimeInput.value=String(m).padStart(2,'0')+':00'; });
-
-  function currentMatchMs(){ return matchBaseMs+(matchStartedAt===null?0:now()-matchStartedAt); }
-  function currentDelayMs(){ return Math.max(0,delayAccumulatedMs+(delayStartedAt===null?0:now()-delayStartedAt)); }
-  async function requestWakeLock(){ if(!('wakeLock' in navigator)){wakeStatus.textContent='Screen awake: unsupported';return;} try{ if(!wakeLock){ wakeLock=await navigator.wakeLock.request('screen'); wakeStatus.textContent='Screen awake: on'; wakeLock.addEventListener('release',()=>{wakeLock=null;wakeStatus.textContent='Screen awake: off';}); } }catch{wakeStatus.textContent='Screen awake: unavailable';} }
-  function stopMatch(){ if(matchStartedAt!==null){ matchBaseMs=currentMatchMs(); matchStartedAt=null; } }
-  function stopDelay(){ if(delayStartedAt!==null){ delayAccumulatedMs=currentDelayMs(); delayStartedAt=null; } }
-  function resetDelay(){ delayAccumulatedMs=0; delayStartedAt=null; }
-  function clearArm(){ armedAction=null; armedAt=0; mainAction.classList.remove('armed'); suspendButton.classList.remove('armed'); newSetup.classList.remove('armed'); resetPeriod.classList.remove('armed'); }
-  function arm(action){ const t=Date.now(); if(armedAction===action&&t-armedAt<=3000){clearArm();return true;} clearArm(); armedAction=action; armedAt=t; if(action==='end')mainAction.classList.add('armed'); if(action==='suspend')suspendButton.classList.add('armed'); if(action==='newSetup')newSetup.classList.add('armed'); if(action==='resetPeriod')resetPeriod.classList.add('armed'); setTimeout(()=>{ if(armedAction===action&&Date.now()-armedAt>=3000){clearArm();updateControls();} },3100); return false; }
-  function beginPeriod(p,startMs,autoStart){ period=p; matchBaseMs=startMs; matchStartedAt=autoStart?now():null; resetDelay(); status=autoStart?'running':'ready'; clearArm(); updateControls(); if(autoStart)requestWakeLock(); }
-  function endCurrentPeriod(){ stopMatch(); stopDelay(); status=nextPeriod(period)?'ended':'matchEnded'; updateControls(); }
-
-  function updateControls(){
-    const running=status==='running', suspended=status==='suspended'; mainAction.classList.toggle('running',running);
-    if(armedAction==='end'&&running) mainAction.textContent='Tap again to END '+periodName(period);
-    else if(status==='ready') mainAction.textContent='Start '+periodName(period);
-    else if(status==='running') mainAction.textContent='End '+periodName(period);
-    else if(status==='ended') mainAction.textContent='Start '+periodName(nextPeriod(period));
-    else if(status==='suspended') mainAction.textContent='Match suspended';
-    else mainAction.textContent='Match ended';
-    periodEl.textContent=status==='ready'?'Ready — '+periodName(period):status==='running'?periodName(period):status==='ended'?periodName(period)+' ended':status==='suspended'?periodName(period)+' — suspended':'Match ended';
-    mainAction.disabled=suspended||status==='matchEnded';
-    suspendButton.disabled=!(running||suspended);
-    if(suspended){ suspendButton.textContent='RESUME MATCH'; suspendButton.classList.add('resume'); }
-    else if(armedAction==='suspend'){ suspendButton.textContent='Tap again to SUSPEND'; suspendButton.classList.remove('resume'); }
-    else { suspendButton.textContent='Suspend match'; suspendButton.classList.remove('resume'); }
-    suspendedBanner.classList.toggle('show',suspended);
-    delayToggle.disabled=!running; if(!running)stopDelay();
-    const live=delayStartedAt!==null; delayCard.classList.toggle('live',live); delayToggle.classList.toggle('active',live); delayToggle.textContent=live?'STOP DELAY':'START DELAY'; delayState.textContent=live?'Accumulating stoppage now':'Not accumulating';
-    newSetup.textContent=armedAction==='newSetup'?'Tap again for new setup':'New match setup';
-    resetPeriod.textContent=armedAction==='resetPeriod'?'Tap again to reset period':'Reset current period';
-  }
-
-  beginMatch.addEventListener('click',()=>{
-    const parsed=parseTime(startingTimeInput.value); if(parsed===null){ alert('Starting time must be in MM:SS format, for example 63:17.'); return; }
-    settings={halfMinutes:Math.max(1,Number(halfLengthInput.value)||45),extraTime:extraTimeEnabled.checked,etMinutes:Math.max(1,Number(etLengthInput.value)||15),startPeriod:startPeriodSelect.value,startTimeMs:parsed};
-    period=settings.startPeriod; matchBaseMs=settings.startTimeMs; matchStartedAt=null; resetDelay(); status='ready'; clearArm(); setupScreen.style.display='none'; timerScreen.style.display='block'; updateControls();
-  });
-  mainAction.addEventListener('click',async()=>{
-    if(status==='ready'){ matchStartedAt=now(); status='running'; clearArm(); await requestWakeLock(); updateControls(); return; }
-    if(status==='running'){ if(!arm('end')){updateControls();return;} endCurrentPeriod(); return; }
-    if(status==='ended'){ const n=nextPeriod(period); beginPeriod(n,periodStartMs(n),true); }
-  });
-  suspendButton.addEventListener('click',()=>{
-    if(status==='suspended'){ matchStartedAt=now(); status='running'; clearArm(); requestWakeLock(); updateControls(); return; }
-    if(status!=='running')return; if(!arm('suspend')){updateControls();return;} stopMatch(); stopDelay(); status='suspended'; updateControls();
-  });
-  delayToggle.addEventListener('click',()=>{ if(status!=='running')return; clearArm(); if(delayStartedAt===null)delayStartedAt=now(); else stopDelay(); updateControls(); });
-  minus60.addEventListener('click',()=>{clearArm();delayAccumulatedMs=Math.max(0,delayAccumulatedMs-60000);updateControls();});
-  minus10.addEventListener('click',()=>{clearArm();delayAccumulatedMs=Math.max(0,delayAccumulatedMs-10000);updateControls();});
-  plus10.addEventListener('click',()=>{clearArm();delayAccumulatedMs+=10000;updateControls();});
-  plus60.addEventListener('click',()=>{clearArm();delayAccumulatedMs+=60000;updateControls();});
-  newSetup.addEventListener('click',()=>{ if(!arm('newSetup')){updateControls();return;} stopMatch(); stopDelay(); timerScreen.style.display='none'; setupScreen.style.display='block'; clearArm(); });
-  resetPeriod.addEventListener('click',()=>{ if(!arm('resetPeriod')){updateControls();return;} stopMatch(); stopDelay(); matchBaseMs=periodStartMs(period); matchStartedAt=null; resetDelay(); status='ready'; clearArm(); updateControls(); });
-  document.addEventListener('visibilitychange',()=>{clearArm();updateControls();if(document.visibilityState==='visible'&&status==='running')requestWakeLock();});
-  function render(){matchEl.textContent=formatMs(currentMatchMs());delayEl.textContent=formatMs(currentDelayMs());requestAnimationFrame(render);} 
-  if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-  rebuildStartPeriodOptions(); updateSetupSummary(); render();
-})();
-</script>
+<script src="app.js"></script>
 </body>
 </html>
