@@ -105,9 +105,18 @@
       padding: 14px 18px;
     }
 
-    .main-action.end {
-      background: var(--warning);
-      color: #1a1200;
+    .main-action.running {
+      min-height: 52px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 750;
+    }
+
+    .main-action.armed {
+      border-color: var(--warning);
+      color: var(--warning);
     }
 
     .delay-card {
@@ -255,8 +264,9 @@
     </div>
 
     <p class="hint">
-      Reset buttons require two taps within 3 seconds. The match clock continues independently of the stoppage timer.
+      End-half, end-match and reset controls require confirmation with a second tap within 3 seconds.
     </p>
+    <p class="hint" style="font-size:.72rem;opacity:.75;margin-top:6px">v0.3 Beta</p>
   </main>
 
   <script>
@@ -285,6 +295,7 @@
 
       let wakeLock = null;
       let resetArm = { zero: 0, fortyFive: 0 };
+      let endArm = 0;
 
       const now = () => performance.now();
 
@@ -360,6 +371,40 @@
         resetFortyFive.classList.remove('armed');
       }
 
+      function clearEndArming() {
+        endArm = 0;
+        mainAction.classList.remove('armed');
+      }
+
+      function armOrEndPeriod() {
+        const t = Date.now();
+        if (t - endArm <= 3000) {
+          clearEndArming();
+          if (state === 'running1') {
+            stopMatch();
+            stopDelay();
+            state = 'ended1';
+          } else if (state === 'running2') {
+            stopMatch();
+            stopDelay();
+            state = 'ended2';
+          }
+          updateControls();
+          return;
+        }
+
+        clearResetArming();
+        endArm = t;
+        mainAction.classList.add('armed');
+        mainAction.textContent = state === 'running1' ? 'Tap again to END 1st half' : 'Tap again to END match';
+        setTimeout(() => {
+          if (Date.now() - endArm >= 3000) {
+            clearEndArming();
+            updateControls();
+          }
+        }, 3100);
+      }
+
       function armOrReset(which) {
         const t = Date.now();
         const isZero = which === 'zero';
@@ -385,21 +430,21 @@
       function updateControls() {
         const running = state === 'running1' || state === 'running2';
 
-        mainAction.classList.toggle('end', running);
+        mainAction.classList.toggle('running', running);
 
-        if (state === 'ready1') {
+        if (!endArm && state === 'ready1') {
           mainAction.textContent = 'Start 1st half';
           periodEl.textContent = 'Ready for first half';
-        } else if (state === 'running1') {
+        } else if (!endArm && state === 'running1') {
           mainAction.textContent = 'End 1st half';
           periodEl.textContent = 'First half';
-        } else if (state === 'ended1') {
+        } else if (!endArm && state === 'ended1') {
           mainAction.textContent = 'Start 2nd half';
           periodEl.textContent = 'Half-time';
-        } else if (state === 'running2') {
+        } else if (!endArm && state === 'running2') {
           mainAction.textContent = 'End match';
           periodEl.textContent = 'Second half';
-        } else if (state === 'ended2') {
+        } else if (!endArm && state === 'ended2') {
           mainAction.textContent = 'Reset match';
           periodEl.textContent = 'Match ended';
         }
@@ -420,21 +465,18 @@
         if (state === 'ready1') {
           matchStartedAt = now();
           state = 'running1';
+          clearEndArming();
           await requestWakeLock();
-        } else if (state === 'running1') {
-          stopMatch();
-          stopDelay();
-          state = 'ended1';
+        } else if (state === 'running1' || state === 'running2') {
+          armOrEndPeriod();
+          return;
         } else if (state === 'ended1') {
           matchBaseMs = 45 * 60 * 1000;
           matchStartedAt = now();
           resetDelay();
           state = 'running2';
+          clearEndArming();
           await requestWakeLock();
-        } else if (state === 'running2') {
-          stopMatch();
-          stopDelay();
-          state = 'ended2';
         } else if (state === 'ended2') {
           hardReset(0, 'ready1');
           return;
@@ -444,6 +486,7 @@
       });
 
       delayToggle.addEventListener('click', () => {
+        clearEndArming();
         const running = state === 'running1' || state === 'running2';
         if (!running) return;
 
@@ -456,18 +499,22 @@
       });
 
       minus60.addEventListener('click', () => {
+        clearEndArming();
         delayAccumulatedMs = Math.max(0, delayAccumulatedMs - 60000);
       });
 
       minus10.addEventListener('click', () => {
+        clearEndArming();
         delayAccumulatedMs = Math.max(0, delayAccumulatedMs - 10000);
       });
 
       plus10.addEventListener('click', () => {
+        clearEndArming();
         delayAccumulatedMs += 10000;
       });
 
       plus60.addEventListener('click', () => {
+        clearEndArming();
         delayAccumulatedMs += 60000;
       });
 
@@ -475,6 +522,8 @@
       resetFortyFive.addEventListener('click', () => armOrReset('fortyFive'));
 
       document.addEventListener('visibilitychange', () => {
+        clearEndArming();
+        updateControls();
         if (document.visibilityState === 'visible' && (state === 'running1' || state === 'running2')) {
           requestWakeLock();
         }
