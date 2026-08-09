@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a111d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Assessor Timer">
+  <title>Referee Assessor Timer</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07101c;
+      --panel: #101a2a;
+      --panel2: #172338;
+      --text: #f5f7fa;
+      --muted: #9eafc3;
+      --accent: #38d982;
+      --danger: #ff6868;
+      --warning: #ffbf47;
+      --border: #2c3a50;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body { min-height: 100dvh; }
+    button { font: inherit; touch-action: manipulation; }
+
+    .app {
+      width: min(820px, 100%);
+      margin: 0 auto;
+      padding: calc(14px + env(safe-area-inset-top)) 14px calc(22px + env(safe-area-inset-bottom));
+    }
+
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .status {
+      padding: 5px 9px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--panel);
+      white-space: nowrap;
+    }
+
+    .match-card, .delay-card {
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: var(--panel);
+      padding: 16px;
+    }
+
+    .label {
+      text-align: center;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      font-weight: 800;
+      font-size: .78rem;
+    }
+
+    .match-time {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(5.6rem, 27vw, 11rem);
+      line-height: .92;
+      font-weight: 850;
+      text-align: center;
+      letter-spacing: -.07em;
+      margin: 10px 0 8px;
+    }
+
+    .period {
+      text-align: center;
+      min-height: 1.35em;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .main-action {
+      width: 100%;
+      min-height: 68px;
+      border: 0;
+      border-radius: 16px;
+      background: var(--accent);
+      color: #06110a;
+      font-size: 1.18rem;
+      font-weight: 850;
+      padding: 14px 18px;
+    }
+
+    .main-action.end {
+      background: var(--warning);
+      color: #1a1200;
+    }
+
+    .delay-card {
+      margin-top: 12px;
+      transition: border-color .15s ease, background .15s ease;
+    }
+
+    .delay-card.live {
+      border-color: var(--danger);
+      background: #24151a;
+    }
+
+    .delay-state {
+      text-align: center;
+      min-height: 1.2em;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .9rem;
+      font-weight: 700;
+    }
+
+    .delay-card.live .delay-state {
+      color: var(--danger);
+    }
+
+    .delay-time {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(3rem, 14vw, 5.6rem);
+      line-height: .95;
+      font-weight: 850;
+      text-align: center;
+      letter-spacing: -.04em;
+      margin: 8px 0 12px;
+    }
+
+    .delay-toggle {
+      width: 100%;
+      min-height: 82px;
+      border-radius: 18px;
+      border: 2px solid var(--accent);
+      background: transparent;
+      color: var(--text);
+      font-size: 1.22rem;
+      font-weight: 900;
+    }
+
+    .delay-toggle.active {
+      border-color: var(--danger);
+      background: var(--danger);
+      color: #180505;
+    }
+
+    .delay-toggle:disabled {
+      opacity: .42;
+    }
+
+    .adjust {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .secondary, .reset-button {
+      min-height: 48px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel2);
+      color: var(--text);
+      font-weight: 750;
+      padding: 10px 8px;
+    }
+
+    .reset-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .reset-button.armed {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .hint {
+      margin: 10px 6px 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.35;
+    }
+
+    @media (max-width: 460px) {
+      .adjust { grid-template-columns: repeat(2, 1fr); }
+      .match-time { font-size: clamp(5rem, 29vw, 8.5rem); }
+    }
+
+    @media (orientation: landscape) and (max-height: 520px) {
+      .app { padding-top: 6px; }
+      .topline { margin-bottom: 6px; }
+      .match-card, .delay-card { padding: 10px; border-radius: 16px; }
+      .match-time { font-size: 18vh; margin: 2px 0 4px; }
+      .period { margin-bottom: 7px; }
+      .main-action { min-height: 46px; }
+      .delay-card { margin-top: 7px; }
+      .delay-time { font-size: 9vh; margin: 2px 0 6px; }
+      .delay-toggle { min-height: 48px; }
+      .secondary, .reset-button { min-height: 38px; }
+      .hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topline">
+      <span>Referee Assessor Timer</span>
+      <span id="wakeStatus" class="status">Screen awake: —</span>
+    </div>
+
+    <section class="match-card" aria-labelledby="matchLabel">
+      <div id="matchLabel" class="label">Match time</div>
+      <div id="matchTime" class="match-time">00:00</div>
+      <div id="periodText" class="period">Ready for first half</div>
+      <button id="mainAction" class="main-action" type="button">Start 1st half</button>
+    </section>
+
+    <section id="delayCard" class="delay-card" aria-labelledby="delayLabel">
+      <div id="delayLabel" class="label">Stoppage / delay time</div>
+      <div id="delayState" class="delay-state">Not accumulating</div>
+      <div id="delayTime" class="delay-time">00:00</div>
+      <button id="delayToggle" class="delay-toggle" type="button" disabled>START DELAY</button>
+
+      <div class="adjust">
+        <button id="minus60" class="secondary" type="button">−1 min</button>
+        <button id="minus10" class="secondary" type="button">−10 sec</button>
+        <button id="plus10" class="secondary" type="button">+10 sec</button>
+        <button id="plus60" class="secondary" type="button">+1 min</button>
+      </div>
+    </section>
+
+    <div class="reset-row">
+      <button id="resetZero" class="reset-button" type="button">Reset to 00:00</button>
+      <button id="resetFortyFive" class="reset-button" type="button">Reset to 45:00</button>
+    </div>
+
+    <p class="hint">
+      Reset buttons require two taps within 3 seconds. The match clock continues independently of the stoppage timer.
+    </p>
+  </main>
+
+  <script>
+    (() => {
+      const matchEl = document.getElementById('matchTime');
+      const delayEl = document.getElementById('delayTime');
+      const periodEl = document.getElementById('periodText');
+      const mainAction = document.getElementById('mainAction');
+      const delayToggle = document.getElementById('delayToggle');
+      const delayCard = document.getElementById('delayCard');
+      const delayState = document.getElementById('delayState');
+      const minus60 = document.getElementById('minus60');
+      const minus10 = document.getElementById('minus10');
+      const plus10 = document.getElementById('plus10');
+      const plus60 = document.getElementById('plus60');
+      const resetZero = document.getElementById('resetZero');
+      const resetFortyFive = document.getElementById('resetFortyFive');
+      const wakeStatus = document.getElementById('wakeStatus');
+
+      let state = 'ready1'; // ready1, running1, ended1, running2, ended2
+      let matchBaseMs = 0;
+      let matchStartedAt = null;
+
+      let delayAccumulatedMs = 0;
+      let delayStartedAt = null;
+
+      let wakeLock = null;
+      let resetArm = { zero: 0, fortyFive: 0 };
+
+      const now = () => performance.now();
+
+      function currentMatchMs() {
+        return matchBaseMs + (matchStartedAt === null ? 0 : now() - matchStartedAt);
+      }
+
+      function currentDelayMs() {
+        return Math.max(0, delayAccumulatedMs + (delayStartedAt === null ? 0 : now() - delayStartedAt));
+      }
+
+      function formatMs(ms) {
+        const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+      }
+
+      async function requestWakeLock() {
+        if (!('wakeLock' in navigator)) {
+          wakeStatus.textContent = 'Screen awake: unsupported';
+          return;
+        }
+        try {
+          if (!wakeLock) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeStatus.textContent = 'Screen awake: on';
+            wakeLock.addEventListener('release', () => {
+              wakeLock = null;
+              wakeStatus.textContent = 'Screen awake: off';
+            });
+          }
+        } catch {
+          wakeStatus.textContent = 'Screen awake: unavailable';
+        }
+      }
+
+      function stopMatch() {
+        if (matchStartedAt !== null) {
+          matchBaseMs = currentMatchMs();
+          matchStartedAt = null;
+        }
+      }
+
+      function stopDelay() {
+        if (delayStartedAt !== null) {
+          delayAccumulatedMs = currentDelayMs();
+          delayStartedAt = null;
+        }
+      }
+
+      function resetDelay() {
+        delayAccumulatedMs = 0;
+        delayStartedAt = null;
+      }
+
+      function hardReset(baseMs, newState) {
+        stopMatch();
+        stopDelay();
+        matchBaseMs = baseMs;
+        resetDelay();
+        state = newState;
+        clearResetArming();
+        updateControls();
+      }
+
+      function clearResetArming() {
+        resetArm.zero = 0;
+        resetArm.fortyFive = 0;
+        resetZero.textContent = 'Reset to 00:00';
+        resetFortyFive.textContent = 'Reset to 45:00';
+        resetZero.classList.remove('armed');
+        resetFortyFive.classList.remove('armed');
+      }
+
+      function armOrReset(which) {
+        const t = Date.now();
+        const isZero = which === 'zero';
+        const button = isZero ? resetZero : resetFortyFive;
+        const other = isZero ? resetFortyFive : resetZero;
+
+        if (t - resetArm[which] <= 3000) {
+          hardReset(isZero ? 0 : 45 * 60 * 1000, isZero ? 'ready1' : 'ended1');
+          return;
+        }
+
+        clearResetArming();
+        resetArm[which] = t;
+        button.textContent = 'Tap again to confirm';
+        button.classList.add('armed');
+        other.classList.remove('armed');
+
+        setTimeout(() => {
+          if (Date.now() - resetArm[which] >= 3000) clearResetArming();
+        }, 3100);
+      }
+
+      function updateControls() {
+        const running = state === 'running1' || state === 'running2';
+
+        mainAction.classList.toggle('end', running);
+
+        if (state === 'ready1') {
+          mainAction.textContent = 'Start 1st half';
+          periodEl.textContent = 'Ready for first half';
+        } else if (state === 'running1') {
+          mainAction.textContent = 'End 1st half';
+          periodEl.textContent = 'First half';
+        } else if (state === 'ended1') {
+          mainAction.textContent = 'Start 2nd half';
+          periodEl.textContent = 'Half-time';
+        } else if (state === 'running2') {
+          mainAction.textContent = 'End match';
+          periodEl.textContent = 'Second half';
+        } else if (state === 'ended2') {
+          mainAction.textContent = 'Reset match';
+          periodEl.textContent = 'Match ended';
+        }
+
+        delayToggle.disabled = !running;
+        if (!running) stopDelay();
+
+        const delayLive = delayStartedAt !== null;
+        delayCard.classList.toggle('live', delayLive);
+        delayToggle.classList.toggle('active', delayLive);
+        delayToggle.textContent = delayLive ? 'STOP DELAY' : 'START DELAY';
+        delayState.textContent = delayLive ? 'Accumulating stoppage now' : 'Not accumulating';
+      }
+
+      mainAction.addEventListener('click', async () => {
+        clearResetArming();
+
+        if (state === 'ready1') {
+          matchStartedAt = now();
+          state = 'running1';
+          await requestWakeLock();
+        } else if (state === 'running1') {
+          stopMatch();
+          stopDelay();
+          state = 'ended1';
+        } else if (state === 'ended1') {
+          matchBaseMs = 45 * 60 * 1000;
+          matchStartedAt = now();
+          resetDelay();
+          state = 'running2';
+          await requestWakeLock();
+        } else if (state === 'running2') {
+          stopMatch();
+          stopDelay();
+          state = 'ended2';
+        } else if (state === 'ended2') {
+          hardReset(0, 'ready1');
+          return;
+        }
+
+        updateControls();
+      });
+
+      delayToggle.addEventListener('click', () => {
+        const running = state === 'running1' || state === 'running2';
+        if (!running) return;
+
+        if (delayStartedAt === null) {
+          delayStartedAt = now();
+        } else {
+          stopDelay();
+        }
+        updateControls();
+      });
+
+      minus60.addEventListener('click', () => {
+        delayAccumulatedMs = Math.max(0, delayAccumulatedMs - 60000);
+      });
+
+      minus10.addEventListener('click', () => {
+        delayAccumulatedMs = Math.max(0, delayAccumulatedMs - 10000);
+      });
+
+      plus10.addEventListener('click', () => {
+        delayAccumulatedMs += 10000;
+      });
+
+      plus60.addEventListener('click', () => {
+        delayAccumulatedMs += 60000;
+      });
+
+      resetZero.addEventListener('click', () => armOrReset('zero'));
+      resetFortyFive.addEventListener('click', () => armOrReset('fortyFive'));
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && (state === 'running1' || state === 'running2')) {
+          requestWakeLock();
+        }
+      });
+
+      function render() {
+        matchEl.textContent = formatMs(currentMatchMs());
+        delayEl.textContent = formatMs(currentDelayMs());
+        requestAnimationFrame(render);
+      }
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+      }
+
+      updateControls();
+      render();
+    })();
+  </script>
+</body>
+</html>
