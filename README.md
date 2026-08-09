@@ -1,4 +1,4 @@
-# Referee Assessor Timer
+# Football Match Timer
 
 A simple web-based match and stoppage timer designed specifically for football referee assessors and observers.
 
@@ -6,7 +6,7 @@ A simple web-based match and stoppage timer designed specifically for football r
 
 ## Launch the Timer
 
-### [Open Referee Assessor Timer](https://drquack32.github.io/referee-assessor-timer/)
+### [Open Football Match Timer](https://drquack32.github.io/referee-assessor-timer/)
 
 No App Store installation, account or login is required.
 
