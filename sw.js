@@ -1,4 +1,4 @@
-const CACHE = 'assessor-timer-v2';
+const CACHE = 'assessor-timer-v0.3-beta';
 const ASSETS = [
   './',
   './index.html',
