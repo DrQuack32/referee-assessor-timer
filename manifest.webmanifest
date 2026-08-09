@@ -1,11 +1,11 @@
 {
-  "name": "Referee Assessor Timer",
-  "short_name": "Assessor Timer",
+  "name": "Football Match Timer",
+  "short_name": "Match Timer",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#07101c",
   "theme_color": "#0a111d",
-  "description": "Configurable football match and stoppage timer for referee assessment.",
+  "description": "A configurable football match and stoppage timer for coaches, referees and observers.",
   "icons": [
     {
       "src": "icon-192.png",
