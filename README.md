@@ -1,6 +1,6 @@
 # Football Match Timer
 
-A simple web-based football match, stoppage and review-marker timer for coaches, referees, referee assessors, observers and anyone who wants an independent view of match time.
+A simple web-based football match, stoppage and video-review-marker timer for coaches, referees, referee assessors, observers and anyone who wants an independent view of match time.
 
 > **Status: Beta / Field Testing**
 
@@ -12,7 +12,18 @@ No App Store installation, account or login is required.
 
 ## Current Version
 
-**v0.5 Beta**
+**v0.5.1 Beta**
+
+
+## v0.5.1 Changes
+
+- Improved German wording based on native-speaker feedback
+- Corrected German start/end button word order
+- Changed the German stoppage-time label to **Nachspielzeit**
+- Added creator attribution: **Chris Kerr · Auckland, New Zealand**
+- Added a link to the creator's GitHub profile
+- Pre-caches the complete app for reliable offline use after the first successful online load
+- Renamed **Review Markers** to **Video Review Markers**
 
 ## Features
 
@@ -23,7 +34,7 @@ No App Store installation, account or login is required.
 - Separate accumulated stoppage/delay timer
 - Manual stoppage adjustment by ±10 seconds and ±1 minute
 - Full-match suspension and resume
-- Review markers: tap **MARK** to record the current match time
+- Video Review Markers: tap **MARK** to record the current match time
 - Show/hide marker list, undo last marker, clear markers and copy marker list
 - Markers persist locally on the device
 - Multilingual interface: English, Spanish, French, Portuguese, German and Italian
@@ -31,7 +42,7 @@ No App Store installation, account or login is required.
 - Offline support
 - Network-first update behaviour for the main app files to reduce stale iOS caching
 
-## Review Markers
+## Video Review Markers
 
 The marker feature is intentionally simple. When something happens that you may want to review later, tap **MARK**.
 
@@ -47,7 +58,7 @@ Markers are stored locally on the device and can be copied as a simple text list
 
 ## Languages
 
-v0.5 Beta includes best-effort interface translations for:
+The multilingual interface includes best-effort translations for:
 
 - English
 - Spanish
@@ -102,3 +113,9 @@ The timer is currently being field tested. Feedback, bug reports and translation
 ## Disclaimer
 
 This timer is an independent timing aid only. Official match timing and the determination of additional time remain the responsibility of the match referee.
+
+## Creator
+
+Created by **Chris Kerr**, Auckland, New Zealand.
+
+GitHub: https://github.com/drquack32

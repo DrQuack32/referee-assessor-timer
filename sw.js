@@ -1,4 +1,4 @@
-const CACHE = 'football-match-timer-v0.5-beta';
+const CACHE = 'football-match-timer-v0.5.1-beta';
 const PRECACHE = ['./', './index.html', './app.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', event => {
