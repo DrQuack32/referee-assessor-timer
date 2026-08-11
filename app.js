@@ -40,62 +40,478 @@
 
   function rebuildStartPeriodOptions(){
     const current=startPeriodSelect.value||settings.startPeriod||'1H';
-    const o=[['1H',L('p1')],['2H',L('p2')]];if(extraTimeEnabled.checked)o.push(['ET1',L('pet1')],['ET2',L('pet2')]);
+    const o=[['1H',L('p1')],['2H',L('p2')]];
+    if(extraTimeEnabled.checked)o.push(['ET1',L('pet1')],['ET2',L('pet2')]);
     startPeriodSelect.innerHTML=o.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('');
     if(o.some(x=>x[0]===current))startPeriodSelect.value=current;
   }
-  function updateSetupSummary(){const h=Math.max(1,Number(halfLengthInput.value)||45),et=Math.max(1,Number(etLengthInput.value)||15),full=h*2;setupSummary.innerHTML=`<strong>${L('normalTime')}:</strong> 00:00 → ${h}:00 → ${full}:00${extraTimeEnabled.checked?` → ${full+et}:00 → ${full+et*2}:00`:''}`;}
 
-  async function requestWakeLock(){if(!('wakeLock'in navigator)){wakeStatus.textContent=`${L('wake')}: —`;return;}try{if(!wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeStatus.textContent=`${L('wake')}: on`;wakeLock.addEventListener('release',()=>{wakeLock=null;wakeStatus.textContent=`${L('wake')}: off`;});}}catch{wakeStatus.textContent=`${L('wake')}: —`;}}
-  function clearArm(){armedAction=null;armedAt=0;[mainAction,suspendButton,newSetup,resetPeriod,clearMarkers].forEach(x=>x.classList.remove('armed'));}
-  function arm(action){const ts=Date.now();if(armedAction===action&&ts-armedAt<=3000){clearArm();return true;}clearArm();armedAction=action;armedAt=ts;({end:mainAction,suspend:suspendButton,newSetup,resetPeriod,clearMarkers}[action])?.classList.add('armed');setTimeout(()=>{if(armedAction===action&&Date.now()-armedAt>=3000){clearArm();updateControls();}},3100);return false;}
-
-  function showToast(msg){markerToast.textContent=msg;setTimeout(()=>{if(markerToast.textContent===msg)markerToast.textContent='';},1800);}
-  function renderMarkers(){markerCount.textContent=String(markers.length);markerList.classList.toggle('show',markersVisible);toggleMarkers.textContent=markersVisible?L('hide'):L('show');if(!markers.length){markerList.innerHTML=`<div class="marker-item"><span>${L('none')}</span></div>`;return;}markerList.innerHTML=markers.map((m,i)=>`<div class="marker-item"><span>${String(i+1).padStart(2,'0')}. <strong>${m.time}</strong></span><span class="marker-period">${periodName(m.period)||m.periodLabel||''}</span></div>`).join('');}
-  function addMarker(){if(!['running','suspended'].includes(status))return;const m={time:formatMs(currentMatchMs()),period,createdAt:Date.now()};markers.push(m);saveMarkers();renderMarkers();showToast(`${L('added')}: ${m.time}`);}
-  async function copyMarkerText(){const text=markers.map((m,i)=>`${i+1}. ${m.time} — ${periodName(m.period)||m.periodLabel||''}`).join('\n');if(!text){showToast(L('none'));return;}try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);showToast(L('copied'));return;}}catch{}const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{showToast(document.execCommand('copy')?L('copied'):L('copyFail'));}catch{showToast(L('copyFail'));}ta.remove();}
-
-  function applyTranslations(){
-    document.documentElement.lang=lang;document.title=L('appName');localStorage.setItem(STORAGE_LANGUAGE,lang);
-    const ids={appName:'appName',setupTitle:'setupTitle',setupIntro:'setupIntro',languageLabel:'language',halfLengthLabel:'halfLength',extraTimeLabel:'extraTime',extraTimeEnableLabel:'enableET',etLengthLabel:'etLength',startPeriodLabel:'startPeriod',startingTimeLabel:'startTime',beginMatch:'useSettings',matchLabel:'matchTime',delayLabel:'stoppage',markersLabel:'markers',hintText:'hint'};
-    Object.entries(ids).forEach(([id,key])=>$(id).textContent=L(key));
-    markButton.textContent=L('mark');undoMarker.textContent=L('undo');copyMarkers.textContent=L('copy');wakeStatus.textContent=`${L('wake')}: ${wakeLock?'on':'—'}`;
-    rebuildStartPeriodOptions();updateSetupSummary();updateControls();renderMarkers();
+  function updateSetupSummary(){
+    const h=Math.max(1,Number(halfLengthInput.value)||45),
+          et=Math.max(1,Number(etLengthInput.value)||15),
+          full=h*2;
+    setupSummary.innerHTML=`<strong>${L('normalTime')}:</strong> 00:00 → ${h}:00 → ${full}:00${extraTimeEnabled.checked?` → ${full+et}:00 → ${full+et*2}:00`:''}`;
   }
 
-  function actionLabel(action,p){const name=periodName(p);if(lang==='de'){if(action==='start')return `${name} ${L('start')}`;if(action==='end')return `${name} ${L('end')}`;}return `${L(action)} ${name}`;}
-  function endConfirmLabel(p){return lang==='de'?`${periodName(p)} — ${L('tapEnd')}`:`${L('tapEnd')} ${periodName(p)}`;}
+  function wakeYes(){return lang==='es'?'Sí':'on';}
+  function wakeNo(){return lang==='es'?'No':'off';}
+
+  async function requestWakeLock(){
+    if(!('wakeLock'in navigator)){
+      wakeStatus.textContent=`${L('wake')}: —`;
+      return;
+    }
+
+    try{
+      if(!wakeLock){
+        wakeLock=await navigator.wakeLock.request('screen');
+        wakeStatus.textContent=`${L('wake')}: ${wakeYes()}`;
+
+        wakeLock.addEventListener('release',()=>{
+          wakeLock=null;
+          wakeStatus.textContent=`${L('wake')}: ${wakeNo()}`;
+        });
+      }
+    }catch{
+      wakeStatus.textContent=`${L('wake')}: —`;
+    }
+  }
+
+  function clearArm(){
+    armedAction=null;
+    armedAt=0;
+    [mainAction,suspendButton,newSetup,resetPeriod,clearMarkers].forEach(x=>x.classList.remove('armed'));
+  }
+
+  function arm(action){
+    const ts=Date.now();
+    if(armedAction===action&&ts-armedAt<=3000){
+      clearArm();
+      return true;
+    }
+    clearArm();
+    armedAction=action;
+    armedAt=ts;
+    ({end:mainAction,suspend:suspendButton,newSetup,resetPeriod,clearMarkers}[action])?.classList.add('armed');
+    setTimeout(()=>{
+      if(armedAction===action&&Date.now()-armedAt>=3000){
+        clearArm();
+        updateControls();
+      }
+    },3100);
+    return false;
+  }
+
+  function showToast(msg){
+    markerToast.textContent=msg;
+    setTimeout(()=>{
+      if(markerToast.textContent===msg)markerToast.textContent='';
+    },1800);
+  }
+
+  function renderMarkers(){
+    markerCount.textContent=String(markers.length);
+    markerList.classList.toggle('show',markersVisible);
+    toggleMarkers.textContent=markersVisible?L('hide'):L('show');
+
+    if(!markers.length){
+      markerList.innerHTML=`<div class="marker-item"><span>${L('none')}</span></div>`;
+      return;
+    }
+
+    markerList.innerHTML=markers.map((m,i)=>`<div class="marker-item"><span>${String(i+1).padStart(2,'0')}. <strong>${m.time}</strong></span><span class="marker-period">${periodName(m.period)||m.periodLabel||''}</span></div>`).join('');
+  }
+
+  function addMarker(){
+    if(!['running','suspended'].includes(status))return;
+    const m={time:formatMs(currentMatchMs()),period,createdAt:Date.now()};
+    markers.push(m);
+    saveMarkers();
+    renderMarkers();
+    showToast(`${L('added')}: ${m.time}`);
+  }
+
+  async function copyMarkerText(){
+    const text=markers.map((m,i)=>`${i+1}. ${m.time} — ${periodName(m.period)||m.periodLabel||''}`).join('\n');
+
+    if(!text){
+      showToast(L('none'));
+      return;
+    }
+
+    try{
+      if(navigator.clipboard&&window.isSecureContext){
+        await navigator.clipboard.writeText(text);
+        showToast(L('copied'));
+        return;
+      }
+    }catch{}
+
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    ta.style.position='fixed';
+    ta.style.opacity='0';
+    document.body.appendChild(ta);
+    ta.select();
+
+    try{
+      showToast(document.execCommand('copy')?L('copied'):L('copyFail'));
+    }catch{
+      showToast(L('copyFail'));
+    }
+
+    ta.remove();
+  }
+
+  function applyTranslations(){
+    document.documentElement.lang=lang;
+    document.title=L('appName');
+    localStorage.setItem(STORAGE_LANGUAGE,lang);
+
+    const ids={
+      appName:'appName',
+      setupTitle:'setupTitle',
+      setupIntro:'setupIntro',
+      languageLabel:'language',
+      halfLengthLabel:'halfLength',
+      extraTimeLabel:'extraTime',
+      extraTimeEnableLabel:'enableET',
+      etLengthLabel:'etLength',
+      startPeriodLabel:'startPeriod',
+      startingTimeLabel:'startTime',
+      beginMatch:'useSettings',
+      matchLabel:'matchTime',
+      delayLabel:'stoppage',
+      markersLabel:'markers',
+      hintText:'hint'
+    };
+
+    Object.entries(ids).forEach(([id,key])=>$(id).textContent=L(key));
+
+    markButton.textContent=L('mark');
+    undoMarker.textContent=L('undo');
+    copyMarkers.textContent=L('copy');
+    wakeStatus.textContent=`${L('wake')}: ${wakeLock?wakeYes():'—'}`;
+
+    rebuildStartPeriodOptions();
+    updateSetupSummary();
+    updateControls();
+    renderMarkers();
+  }
+
+  function actionLabel(action,p){
+    const name=periodName(p);
+    if(lang==='de'){
+      if(action==='start')return `${name} ${L('start')}`;
+      if(action==='end')return `${name} ${L('end')}`;
+    }
+    return `${L(action)} ${name}`;
+  }
+
+  function endConfirmLabel(p){
+    return lang==='de'?`${periodName(p)} — ${L('tapEnd')}`:`${L('tapEnd')} ${periodName(p)}`;
+  }
 
   function updateControls(){
-    const running=status==='running',suspended=status==='suspended';mainAction.classList.toggle('running',running);
+    const running=status==='running',
+          suspended=status==='suspended';
+
+    mainAction.classList.toggle('running',running);
+
     if(armedAction==='end'&&running)mainAction.textContent=endConfirmLabel(period);
     else if(status==='ready')mainAction.textContent=actionLabel('start',period);
     else if(status==='running')mainAction.textContent=actionLabel('end',period);
     else if(status==='ended')mainAction.textContent=actionLabel('start',nextPeriod(period));
     else mainAction.textContent=L('matchEnded');
-    periodEl.textContent=status==='ready'?`${L('ready')} — ${periodName(period)}`:status==='running'?periodName(period):status==='ended'?`${periodName(period)} ${L('ended')}`:status==='suspended'?`${periodName(period)} — ${L('suspend')}`:L('matchEnded');
+
+    periodEl.textContent=
+      status==='ready'?`${L('ready')} — ${periodName(period)}`:
+      status==='running'?periodName(period):
+      status==='ended'?`${periodName(period)} ${L('ended')}`:
+      status==='suspended'?`${periodName(period)} — ${L('suspend')}`:
+      L('matchEnded');
+
     mainAction.disabled=suspended||status==='matchEnded';
-    suspendButton.disabled=!(running||suspended);if(suspended){suspendButton.textContent=L('resume');suspendButton.classList.add('resume');}else if(armedAction==='suspend'){suspendButton.textContent=L('tapSuspend');suspendButton.classList.remove('resume');}else{suspendButton.textContent=L('suspend');suspendButton.classList.remove('resume');}
-    suspendedBanner.textContent=L('suspended');suspendedBanner.classList.toggle('show',suspended);
-    delayToggle.disabled=!running;if(!running)stopDelay();const live=delayStartedAt!==null;delayCard.classList.toggle('live',live);delayToggle.classList.toggle('active',live);delayToggle.textContent=live?L('stopDelay'):L('startDelay');delayState.textContent=live?L('accum'):L('notAccum');
-    markButton.disabled=!['running','suspended'].includes(status);newSetup.textContent=armedAction==='newSetup'?L('tapNew'):L('newSetup');resetPeriod.textContent=armedAction==='resetPeriod'?L('tapReset'):L('resetPeriod');clearMarkers.textContent=armedAction==='clearMarkers'?L('tapClear'):L('clear');
+
+    suspendButton.disabled=!(running||suspended);
+
+    if(suspended){
+      suspendButton.textContent=L('resume');
+      suspendButton.classList.add('resume');
+    }else if(armedAction==='suspend'){
+      suspendButton.textContent=L('tapSuspend');
+      suspendButton.classList.remove('resume');
+    }else{
+      suspendButton.textContent=L('suspend');
+      suspendButton.classList.remove('resume');
+    }
+
+    suspendedBanner.textContent=L('suspended');
+    suspendedBanner.classList.toggle('show',suspended);
+
+    delayToggle.disabled=!running;
+
+    if(!running)stopDelay();
+
+    const live=delayStartedAt!==null;
+
+    delayCard.classList.toggle('live',live);
+    delayToggle.classList.toggle('active',live);
+    delayToggle.textContent=live?L('stopDelay'):L('startDelay');
+    delayState.textContent=live?L('accum'):L('notAccum');
+
+    markButton.disabled=!['running','suspended'].includes(status);
+    newSetup.textContent=armedAction==='newSetup'?L('tapNew'):L('newSetup');
+    resetPeriod.textContent=armedAction==='resetPeriod'?L('tapReset'):L('resetPeriod');
+    clearMarkers.textContent=armedAction==='clearMarkers'?L('tapClear'):L('clear');
   }
 
-  languageSelect.value=lang;languageSelect.addEventListener('change',()=>{lang=languageSelect.value;applyTranslations();});
-  extraTimeEnabled.addEventListener('change',()=>{etLengthInput.disabled=!extraTimeEnabled.checked;rebuildStartPeriodOptions();updateSetupSummary();});
-  halfLengthInput.addEventListener('input',updateSetupSummary);etLengthInput.addEventListener('input',updateSetupSummary);
-  startPeriodSelect.addEventListener('change',()=>{const h=Math.max(1,Number(halfLengthInput.value)||45),et=Math.max(1,Number(etLengthInput.value)||15);let m=0;if(startPeriodSelect.value==='2H')m=h;if(startPeriodSelect.value==='ET1')m=h*2;if(startPeriodSelect.value==='ET2')m=h*2+et;startingTimeInput.value=String(m).padStart(2,'0')+':00';});
+  languageSelect.value=lang;
 
-  beginMatch.addEventListener('click',()=>{const parsed=parseTime(startingTimeInput.value);if(parsed===null){alert(L('invalid'));return;}settings={halfMinutes:Math.max(1,Number(halfLengthInput.value)||45),extraTime:extraTimeEnabled.checked,etMinutes:Math.max(1,Number(etLengthInput.value)||15),startPeriod:startPeriodSelect.value,startTimeMs:parsed};period=settings.startPeriod;matchBaseMs=settings.startTimeMs;matchStartedAt=null;resetDelay();status='ready';clearArm();setupScreen.style.display='none';timerScreen.style.display='block';updateControls();renderMarkers();});
-  mainAction.addEventListener('click',async()=>{if(status==='ready'){matchStartedAt=now();status='running';clearArm();await requestWakeLock();updateControls();return;}if(status==='running'){if(!arm('end')){updateControls();return;}stopMatch();stopDelay();status=nextPeriod(period)?'ended':'matchEnded';updateControls();return;}if(status==='ended'){period=nextPeriod(period);matchBaseMs=periodStartMs(period);matchStartedAt=now();resetDelay();status='running';clearArm();requestWakeLock();updateControls();}});
-  suspendButton.addEventListener('click',()=>{if(status==='suspended'){matchStartedAt=now();status='running';clearArm();requestWakeLock();updateControls();return;}if(status!=='running')return;if(!arm('suspend')){updateControls();return;}stopMatch();stopDelay();status='suspended';updateControls();});
-  delayToggle.addEventListener('click',()=>{if(status!=='running')return;clearArm();if(delayStartedAt===null)delayStartedAt=now();else stopDelay();updateControls();});
-  minus60.addEventListener('click',()=>{clearArm();delayAccumulatedMs=Math.max(0,delayAccumulatedMs-60000);updateControls();});minus10.addEventListener('click',()=>{clearArm();delayAccumulatedMs=Math.max(0,delayAccumulatedMs-10000);updateControls();});plus10.addEventListener('click',()=>{clearArm();delayAccumulatedMs+=10000;updateControls();});plus60.addEventListener('click',()=>{clearArm();delayAccumulatedMs+=60000;updateControls();});
-  markButton.addEventListener('click',addMarker);toggleMarkers.addEventListener('click',()=>{markersVisible=!markersVisible;renderMarkers();});undoMarker.addEventListener('click',()=>{if(!markers.length){showToast(L('none'));return;}markers.pop();saveMarkers();renderMarkers();showToast(L('removed'));});copyMarkers.addEventListener('click',copyMarkerText);clearMarkers.addEventListener('click',()=>{if(!markers.length){showToast(L('none'));return;}if(!arm('clearMarkers')){updateControls();return;}markers=[];saveMarkers();renderMarkers();updateControls();});
-  newSetup.addEventListener('click',()=>{if(!arm('newSetup')){updateControls();return;}stopMatch();stopDelay();timerScreen.style.display='none';setupScreen.style.display='block';clearArm();updateControls();});
-  resetPeriod.addEventListener('click',()=>{if(!arm('resetPeriod')){updateControls();return;}stopMatch();stopDelay();matchBaseMs=periodStartMs(period);matchStartedAt=null;resetDelay();status='ready';clearArm();updateControls();});
-  document.addEventListener('visibilitychange',()=>{clearArm();updateControls();if(document.visibilityState==='visible'&&status==='running')requestWakeLock();});
-  function render(){matchEl.textContent=formatMs(currentMatchMs());delayEl.textContent=formatMs(currentDelayMs());requestAnimationFrame(render);}
-  if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-  applyTranslations();renderMarkers();render();
+  languageSelect.addEventListener('change',()=>{
+    lang=languageSelect.value;
+    applyTranslations();
+  });
+
+  extraTimeEnabled.addEventListener('change',()=>{
+    etLengthInput.disabled=!extraTimeEnabled.checked;
+    rebuildStartPeriodOptions();
+    updateSetupSummary();
+  });
+
+  halfLengthInput.addEventListener('input',updateSetupSummary);
+  etLengthInput.addEventListener('input',updateSetupSummary);
+
+  startPeriodSelect.addEventListener('change',()=>{
+    const h=Math.max(1,Number(halfLengthInput.value)||45),
+          et=Math.max(1,Number(etLengthInput.value)||15);
+
+    let m=0;
+
+    if(startPeriodSelect.value==='2H')m=h;
+    if(startPeriodSelect.value==='ET1')m=h*2;
+    if(startPeriodSelect.value==='ET2')m=h*2+et;
+
+    startingTimeInput.value=String(m).padStart(2,'0')+':00';
+  });
+
+  beginMatch.addEventListener('click',()=>{
+    const parsed=parseTime(startingTimeInput.value);
+
+    if(parsed===null){
+      alert(L('invalid'));
+      return;
+    }
+
+    settings={
+      halfMinutes:Math.max(1,Number(halfLengthInput.value)||45),
+      extraTime:extraTimeEnabled.checked,
+      etMinutes:Math.max(1,Number(etLengthInput.value)||15),
+      startPeriod:startPeriodSelect.value,
+      startTimeMs:parsed
+    };
+
+    period=settings.startPeriod;
+    matchBaseMs=settings.startTimeMs;
+    matchStartedAt=null;
+    resetDelay();
+    status='ready';
+    clearArm();
+
+    setupScreen.style.display='none';
+    timerScreen.style.display='block';
+
+    updateControls();
+    renderMarkers();
+  });
+
+  mainAction.addEventListener('click',async()=>{
+    if(status==='ready'){
+      matchStartedAt=now();
+      status='running';
+      clearArm();
+      await requestWakeLock();
+      updateControls();
+      return;
+    }
+
+    if(status==='running'){
+      if(!arm('end')){
+        updateControls();
+        return;
+      }
+
+      stopMatch();
+      stopDelay();
+      status=nextPeriod(period)?'ended':'matchEnded';
+      updateControls();
+      return;
+    }
+
+    if(status==='ended'){
+      period=nextPeriod(period);
+      matchBaseMs=periodStartMs(period);
+      matchStartedAt=now();
+      resetDelay();
+      status='running';
+      clearArm();
+      requestWakeLock();
+      updateControls();
+    }
+  });
+
+  suspendButton.addEventListener('click',()=>{
+    if(status==='suspended'){
+      matchStartedAt=now();
+      status='running';
+      clearArm();
+      requestWakeLock();
+      updateControls();
+      return;
+    }
+
+    if(status!=='running')return;
+
+    if(!arm('suspend')){
+      updateControls();
+      return;
+    }
+
+    stopMatch();
+    stopDelay();
+    status='suspended';
+    updateControls();
+  });
+
+  delayToggle.addEventListener('click',()=>{
+    if(status!=='running')return;
+
+    clearArm();
+
+    if(delayStartedAt===null)delayStartedAt=now();
+    else stopDelay();
+
+    updateControls();
+  });
+
+  minus60.addEventListener('click',()=>{
+    clearArm();
+    delayAccumulatedMs=Math.max(0,delayAccumulatedMs-60000);
+    updateControls();
+  });
+
+  minus10.addEventListener('click',()=>{
+    clearArm();
+    delayAccumulatedMs=Math.max(0,delayAccumulatedMs-10000);
+    updateControls();
+  });
+
+  plus10.addEventListener('click',()=>{
+    clearArm();
+    delayAccumulatedMs+=10000;
+    updateControls();
+  });
+
+  plus60.addEventListener('click',()=>{
+    clearArm();
+    delayAccumulatedMs+=60000;
+    updateControls();
+  });
+
+  markButton.addEventListener('click',addMarker);
+
+  toggleMarkers.addEventListener('click',()=>{
+    markersVisible=!markersVisible;
+    renderMarkers();
+  });
+
+  undoMarker.addEventListener('click',()=>{
+    if(!markers.length){
+      showToast(L('none'));
+      return;
+    }
+
+    markers.pop();
+    saveMarkers();
+    renderMarkers();
+    showToast(L('removed'));
+  });
+
+  copyMarkers.addEventListener('click',copyMarkerText);
+
+  clearMarkers.addEventListener('click',()=>{
+    if(!markers.length){
+      showToast(L('none'));
+      return;
+    }
+
+    if(!arm('clearMarkers')){
+      updateControls();
+      return;
+    }
+
+    markers=[];
+    saveMarkers();
+    renderMarkers();
+    updateControls();
+  });
+
+  newSetup.addEventListener('click',()=>{
+    if(!arm('newSetup')){
+      updateControls();
+      return;
+    }
+
+    stopMatch();
+    stopDelay();
+
+    timerScreen.style.display='none';
+    setupScreen.style.display='block';
+
+    clearArm();
+    updateControls();
+  });
+
+  resetPeriod.addEventListener('click',()=>{
+    if(!arm('resetPeriod')){
+      updateControls();
+      return;
+    }
+
+    stopMatch();
+    stopDelay();
+
+    matchBaseMs=periodStartMs(period);
+    matchStartedAt=null;
+
+    resetDelay();
+    status='ready';
+    clearArm();
+    updateControls();
+  });
+
+  document.addEventListener('visibilitychange',()=>{
+    clearArm();
+    updateControls();
+
+    if(document.visibilityState==='visible'&&status==='running'){
+      requestWakeLock();
+    }
+  });
+
+  function render(){
+    matchEl.textContent=formatMs(currentMatchMs());
+    delayEl.textContent=formatMs(currentDelayMs());
+    requestAnimationFrame(render);
+  }
+
+  if('serviceWorker'in navigator){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    });
+  }
+
+  applyTranslations();
+  renderMarkers();
+  render();
 })();
